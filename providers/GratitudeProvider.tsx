@@ -8,6 +8,7 @@ import {
   checkIsPremium, 
   restorePurchasesAndCheck, 
 } from "@/lib/revenuecat";
+import { getEntitlementIdentifier } from "@/lib/revenuecat";
 
 const STORAGE_KEY = "gratitude_entries";
 const PREMIUM_KEY = "is_premium";
@@ -22,6 +23,37 @@ export const [GratitudeProvider, useGratitude] = createContextHook(() => {
   useEffect(() => {
     console.log("GratitudeProvider: initializing loadData");
     loadData();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let removeListener: (() => void) | undefined;
+    (async () => {
+      try {
+        await configureRevenueCat();
+        const PurchasesMod: any = await import('react-native-purchases');
+        const Purchases: any = PurchasesMod?.default ?? PurchasesMod;
+        const entitlementId = getEntitlementIdentifier();
+
+        removeListener = Purchases.addCustomerInfoUpdateListener(async (info: any) => {
+          try {
+            const hasPremium = Boolean(info?.entitlements?.active?.[entitlementId]);
+            await AsyncStorage.setItem(PREMIUM_KEY, JSON.stringify(hasPremium));
+            setIsPremium(hasPremium);
+          } catch (err) {
+            console.warn('GratitudeProvider: failed to handle customer info update', err);
+          }
+        });
+      } catch (e) {
+        console.warn('GratitudeProvider: failed to register RevenueCat listener', e);
+      }
+    })();
+
+    return () => {
+      try {
+        if (removeListener) removeListener();
+      } catch (_) {}
+    };
   }, []);
 
   const loadData = async () => {

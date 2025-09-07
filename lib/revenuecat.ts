@@ -71,6 +71,11 @@ export async function restorePurchasesAndCheck(): Promise<boolean> {
 	}
 }
 
+export function getEntitlementIdentifier(): string {
+	const cfg = getRevenueCatConfig();
+	return cfg?.entitlement || "premium";
+}
+
 export function getOfferingIdentifier(): string | undefined {
 	const cfg = getRevenueCatConfig();
 	return cfg?.offering || undefined;
