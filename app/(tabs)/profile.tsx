@@ -241,6 +241,8 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </ProGate>
 
+          
+
           <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
             <Heart size={20} color="#9CA3AF" />
             <Text style={styles.settingText}>Rate App</Text>

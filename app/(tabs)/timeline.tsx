@@ -178,11 +178,12 @@ export default function TimelineScreen() {
         day: 'numeric',
         year: 'numeric',
       });
-      const arr = map.get(date) ?? [] as typeof entries;
-      arr.push(entry);
-      map.set(date, arr);
+      const currentArr = map.get(date);
+      const nextArr: typeof entries = Array.isArray(currentArr) ? [...currentArr, entry] : [entry];
+      map.set(date, nextArr);
     });
-    return Array.from(map.entries()).map(([date, arr]) => ({ date, data: arr })) as Array<{ date: string; data: typeof entries }>;
+    const pairs = Array.from(map.entries());
+    return pairs.map(([date, arr]) => ({ date, data: Array.isArray(arr) ? arr : [] as typeof entries })) as Array<{ date: string; data: typeof entries }>;
   }, [sortedEntries, entries]);
 
   const keyExtractor = useCallback((item: typeof entries[number]) => item.id, []);

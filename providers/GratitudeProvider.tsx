@@ -257,6 +257,7 @@ export const [GratitudeProvider, useGratitude] = createContextHook(() => {
     return payload;
   }, [entries, isPremium]);
 
+
   const clearAllData = useCallback(async (): Promise<void> => {
     try {
       await AsyncStorage.multiRemove([STORAGE_KEY, PREMIUM_KEY]);

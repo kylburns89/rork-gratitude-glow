@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -7,11 +6,8 @@ import { GratitudeProvider } from "@/providers/GratitudeProvider";
 import { useEffect as useEffectRC } from 'react';
 import { configureRevenueCat } from "@/lib/revenuecat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { trpc, trpcClient } from "@/lib/trpc";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient();
 
 const ONBOARDING_KEY = "onboarding_completed";
 
@@ -111,14 +107,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
-          <GratitudeProvider>
-            <RootLayoutNav />
-          </GratitudeProvider>
-        </GestureHandlerRootView>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
+      <GratitudeProvider>
+        <RootLayoutNav />
+      </GratitudeProvider>
+    </GestureHandlerRootView>
   );
 }
