@@ -45,6 +45,8 @@ export async function checkIsPremium(): Promise<boolean> {
 	if (!cfg) return false;
 	try {
 		const Purchases = (await import("react-native-purchases")).default;
+		// Ensure we don't read stale cache right after a purchase in sandbox
+		try { await Purchases.invalidateCustomerInfoCache(); } catch (_) {}
 		const info = await Purchases.getCustomerInfo();
 		const entitlementId = cfg.entitlement || "premium";
 		const entitlement = info?.entitlements?.active?.[entitlementId];

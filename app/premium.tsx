@@ -49,7 +49,7 @@ const features = [
 ];
 
 export default function PremiumScreen() {
-  const { purchasePremium } = useGratitude();
+  const { purchasePremium, isPremium } = useGratitude();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -68,6 +68,12 @@ export default function PremiumScreen() {
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (isPremium) {
+      try { router.back(); } catch (_) {}
+    }
+  }, [isPremium]);
 
   const handleClose = async () => {
     if (Platform.OS !== 'web') {
