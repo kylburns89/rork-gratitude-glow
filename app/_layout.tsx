@@ -4,6 +4,8 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GratitudeProvider } from "@/providers/GratitudeProvider";
+import { useEffect as useEffectRC } from 'react';
+import { configureRevenueCat } from "@/lib/revenuecat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { trpc, trpcClient } from "@/lib/trpc";
 
@@ -80,6 +82,14 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
+        name="paywall" 
+        options={{ 
+          presentation: "modal",
+          headerShown: false,
+          contentStyle: { backgroundColor: '#0A0E27' },
+        }} 
+      />
+      <Stack.Screen 
         name="reminders"
         options={{
           presentation: 'card',
@@ -94,6 +104,10 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+  }, []);
+
+  useEffectRC(() => {
+    configureRevenueCat();
   }, []);
 
   return (

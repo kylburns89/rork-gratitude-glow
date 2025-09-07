@@ -17,7 +17,7 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 export default function ProfileScreen() {
-  const { isPremium, stats, clearAllData, exportData, importData } = useGratitude();
+  const { isPremium, stats, clearAllData, exportData, importData, restorePurchases } = useGratitude();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   
@@ -144,6 +144,29 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
+          {!isPremium && (
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              activeOpacity={0.7}
+              onPress={async () => {
+                try {
+                  const restored = await restorePurchases();
+                  if (restored) {
+                    Alert.alert('Restored', 'Your purchases have been restored.');
+                  } else {
+                    Alert.alert('Nothing to restore', 'We did not find any active purchases.');
+                  }
+                } catch (e) {
+                  Alert.alert('Restore failed', 'Could not restore purchases.');
+                }
+              }}
+              testID="restore-purchases"
+            >
+              <Upload size={20} color="#9CA3AF" />
+              <Text style={styles.settingText}>Restore Purchases</Text>
+            </TouchableOpacity>
+          )}
+
 
           <ProGate reason="premium themes">
             <View style={styles.settingItem}>

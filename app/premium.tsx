@@ -13,6 +13,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { X, Crown, Check, Sparkles, Download, Bell } from "lucide-react-native";
 import { router } from "expo-router";
 import { useGratitude } from "@/providers/GratitudeProvider";
+let RevenueCatUI: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    // Avoid crashing on web where the native module doesn't exist
+    RevenueCatUI = require('react-native-purchases-ui');
+  } catch (_) {
+    RevenueCatUI = null;
+  }
+}
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
@@ -40,7 +49,7 @@ const features = [
 ];
 
 export default function PremiumScreen() {
-  const { upgradeToPremium } = useGratitude();
+  const { purchasePremium } = useGratitude();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -71,8 +80,17 @@ export default function PremiumScreen() {
     if (Platform.OS !== 'web') {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    upgradeToPremium();
-    router.back();
+    try {
+      // Use native paywall screen if available
+      if (RevenueCatUI?.Paywall && Platform.OS !== 'web') {
+        router.push('/paywall');
+        return;
+      }
+      const ok = await purchasePremium();
+      if (ok) router.back();
+    } catch (e) {
+      console.warn('Subscribe failed', e);
+    }
   };
 
   return (

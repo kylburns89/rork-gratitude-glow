@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import createContextHook from "@nkzw/create-context-hook";
 import { GratitudeEntry, GratitudeStats, BackupPayload } from "@/types/gratitude";
+import { 
+  configureRevenueCat, 
+  checkIsPremium, 
+  restorePurchasesAndCheck, 
+} from "@/lib/revenuecat";
 
 const STORAGE_KEY = "gratitude_entries";
 const PREMIUM_KEY = "is_premium";
@@ -83,7 +89,21 @@ export const [GratitudeProvider, useGratitude] = createContextHook(() => {
         console.error("Failed to clear corrupted data:", clearError);
       }
     } finally {
-      setIsLoading(false);
+      try {
+        // Configure RevenueCat and refresh premium from entitlements
+        if (Platform.OS !== 'web') {
+          await configureRevenueCat();
+          const entitlementPremium = await checkIsPremium();
+          if (entitlementPremium) {
+            await AsyncStorage.setItem(PREMIUM_KEY, JSON.stringify(true));
+            setIsPremium(true);
+          }
+        }
+      } catch (e) {
+        console.warn("GratitudeProvider: RevenueCat sync failed", e);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -152,6 +172,62 @@ export const [GratitudeProvider, useGratitude] = createContextHook(() => {
       } catch (clearError) {
         console.error("Failed to clear after premium upgrade error:", clearError);
       }
+    }
+  }, []);
+
+  const purchasePremium = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+      await upgradeToPremium();
+      return true;
+    }
+    try {
+      await configureRevenueCat();
+      // Dynamically import to avoid type deps during web/test builds
+      const PurchasesMod: any = await import("react-native-purchases");
+      const Purchases: any = PurchasesMod?.default ?? PurchasesMod;
+      const offerings = await Purchases.getOfferings();
+      let selectedPackage: any = undefined;
+      const current = offerings?.current;
+      if (current && Array.isArray(current.availablePackages) && current.availablePackages.length > 0) {
+        // Prefer annual if present, otherwise first
+        selectedPackage = current.availablePackages.find((p: any) => p?.packageType === 'ANNUAL') || current.availablePackages[0];
+      }
+      if (!selectedPackage) {
+        console.warn('No available packages to purchase');
+        return false;
+      }
+      const result = await Purchases.purchasePackage(selectedPackage);
+      const success = await checkIsPremium();
+      if (success) {
+        await AsyncStorage.setItem(PREMIUM_KEY, JSON.stringify(true));
+        setIsPremium(true);
+        return true;
+      }
+      return false;
+    } catch (e: any) {
+      // User cancellation or error
+      if (e && (e.userCancelled || e.code === 'PURCHASE_CANCELLED' || e.code === '1')) {
+        return false;
+      }
+      console.error('purchasePremium error', e);
+      return false;
+    }
+  }, [upgradeToPremium]);
+
+  const restorePurchases = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
+    try {
+      await configureRevenueCat();
+      const hasPremium = await restorePurchasesAndCheck();
+      if (hasPremium) {
+        await AsyncStorage.setItem(PREMIUM_KEY, JSON.stringify(true));
+        setIsPremium(true);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('restorePurchases error', e);
+      return false;
     }
   }, []);
 
@@ -262,8 +338,10 @@ export const [GratitudeProvider, useGratitude] = createContextHook(() => {
     updateEntry,
     deleteEntry,
     upgradeToPremium,
+    purchasePremium,
+    restorePurchases,
     clearAllData,
     importData,
     exportData,
-  }), [entries, isPremium, isLoading, stats, addEntry, updateEntry, deleteEntry, upgradeToPremium, clearAllData, importData, exportData]);
+  }), [entries, isPremium, isLoading, stats, addEntry, updateEntry, deleteEntry, upgradeToPremium, purchasePremium, restorePurchases, clearAllData, importData, exportData]);
 });
